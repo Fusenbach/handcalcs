@@ -1642,8 +1642,12 @@ def format_calc_line(line: CalcLine, **config_options) -> CalcLine:
     comment_space = ""
     comment = ""
     if line.comment and not line.comment.startswith("#"):
-        comment_space = "\\;"
-        comment = format_strings(line.comment, comment=True)
+        tag = _format_eq_tag(line.comment)
+        if tag:
+            comment = tag
+        else:
+            comment_space = "\\;"
+            comment = format_strings(line.comment, comment=True)
     line.latex = f"{formula} {comment_space} {comment}\n"
     return line
 
@@ -1655,8 +1659,12 @@ def format_calc_line(line: NumericCalcLine, **config_options) -> NumericCalcLine
     comment_space = ""
     comment = ""
     if line.comment and not line.comment.startswith("#"):
-        comment_space = "\\;"
-        comment = format_strings(line.comment, comment=True)
+        tag = _format_eq_tag(line.comment)
+        if tag:
+            comment = tag
+        else:
+            comment_space = "\\;"
+            comment = format_strings(line.comment, comment=True)
     line.latex = f"{latex_code} {comment_space} {comment}\n"
     return line
 
@@ -1708,17 +1716,30 @@ def format_long_calc_line(line: LongCalcLine, **config_options) -> LongCalcLine:
     comment_space = ""
     comment = ""
     if line.comment and not line.comment.startswith("#"):
-        comment_space = "\\;"
-        comment = format_strings(line.comment, comment=True)
+        tag = _format_eq_tag(line.comment)
+        if tag:
+            comment = tag
+        else:
+            comment_space = "\\;"
+            comment = format_strings(line.comment, comment=True)
     line.latex = f"{long_latex} {comment_space} {comment}{line_break}"
     return line
 
 
 @format_lines.register(ParameterLine)
 def format_param_line(line: ParameterLine, **config_options) -> ParameterLine:
-    comment_space = "\\;"
     line_break = "\n"
-    comment = "" if line.comment.startswith("#") else format_strings(line.comment, comment=True)
+    if line.comment.startswith("#"):
+        comment_space = "\\;"
+        comment = ""
+    else:
+        tag = _format_eq_tag(line.comment)
+        if tag:
+            comment_space = ""
+            comment = tag
+        else:
+            comment_space = "\\;"
+            comment = format_strings(line.comment, comment=True)
     if "=" in line.latex:
         replaced = line.latex.replace("=", "&=")
         line.latex = f"{replaced} {comment_space} {comment}{line_break}"
@@ -1732,7 +1753,11 @@ def format_param_line(line: ParameterLine, **config_options) -> ParameterLine:
 def format_symbolic_line(line: SymbolicLine, **config_options) -> SymbolicLine:
     replaced = line.latex.replace("=", "&=")
     comment_space = "\\;"
-    comment = "" if line.comment.startswith("#") else format_strings(line.comment, comment=True)
+    if line.comment.startswith("#"):
+        comment = ""
+    else:
+        tag = _format_eq_tag(line.comment)
+        comment = tag if tag else format_strings(line.comment, comment=True)
     line.latex = f"{replaced} {comment_space} {comment}\n"
     return line
 
@@ -1982,6 +2007,14 @@ def split_parameter_line(line: str, calculated_results: dict) -> deque:
 
 
 _WHERE_WORDS = {"en": "where", "da": "hvor"}
+
+
+def _format_eq_tag(comment: str) -> str:
+    """Return LaTeX for a #(tag) equation number, or '' if comment is not a tag."""
+    c = comment.strip()
+    if c.startswith("(") and c.endswith(")") and len(c) > 2:
+        return f"\\quad \\textrm{{{c}}}"
+    return ""
 
 
 def _collect_where_block(lines, config_options: dict) -> str:
