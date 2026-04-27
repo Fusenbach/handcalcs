@@ -900,7 +900,10 @@ def format_parameters_cell(cell: ParameterCell, **config_options):
     latex_block = " ".join(
         [line.latex for line in cell.lines if not isinstance(line, BlankLine)]
     ).rstrip()  # .rstrip(): Hack to solve another problem of empty lines in {aligned} environment
+    where_block = _collect_where_block(cell.lines, config_options)
     cell.latex_code = "\n".join([opener, begin, latex_block, end, closer])
+    if where_block:
+        cell.latex_code += "\n" + "\n".join([opener, "\\begin{array}{l@{\\quad}r@{\\quad}l}", where_block, "\\end{array}", closer])
     return cell
 
 
@@ -925,6 +928,7 @@ def format_calc_cell(cell: CalcCell, **config_options) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
+    where_block = _collect_where_block(cell.lines, config_options)
     opener = config_options["latex_block_start"]
     begin = f"\\begin{{{config_options['math_environment_start']}}}"
     end = f"\\end{{{config_options['math_environment_end']}}}"
@@ -932,6 +936,8 @@ def format_calc_cell(cell: CalcCell, **config_options) -> str:
     cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
         "\n" + end, end
     )
+    if where_block:
+        cell.latex_code += "\n" + "\n".join([opener, "\\begin{array}{l@{\\quad}r@{\\quad}l}", where_block, "\\end{array}", closer])
     return cell
 
 
@@ -955,6 +961,7 @@ def format_shortcalc_cell(cell: ShortCalcCell, **config_options) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
+    where_block = _collect_where_block(cell.lines, config_options)
     opener = config_options["latex_block_start"]
     begin = f"\\begin{{{config_options['math_environment_start']}}}"
     end = f"\\end{{{config_options['math_environment_end']}}}"
@@ -962,6 +969,8 @@ def format_shortcalc_cell(cell: ShortCalcCell, **config_options) -> str:
     cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
         "\n" + end, end
     )
+    if where_block:
+        cell.latex_code += "\n" + "\n".join([opener, "\\begin{array}{l@{\\quad}r@{\\quad}l}", where_block, "\\end{array}", closer])
     return cell
 
 
@@ -986,6 +995,7 @@ def format_longcalc_cell(cell: LongCalcCell, **config_options) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
+    where_block = _collect_where_block(cell.lines, config_options)
     opener = config_options["latex_block_start"]
     begin = f"\\begin{{{config_options['math_environment_start']}}}"
     end = f"\\end{{{config_options['math_environment_end']}}}"
@@ -993,6 +1003,8 @@ def format_longcalc_cell(cell: LongCalcCell, **config_options) -> str:
     cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
         "\n" + end, end
     )
+    if where_block:
+        cell.latex_code += "\n" + "\n".join([opener, "\\begin{array}{l@{\\quad}r@{\\quad}l}", where_block, "\\end{array}", closer])
     return cell
 
 
@@ -1016,6 +1028,7 @@ def format_symbolic_cell(cell: SymbolicCell, **config_options) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
+    where_block = _collect_where_block(cell.lines, config_options)
     opener = config_options["latex_block_start"]
     begin = f"\\begin{{{config_options['math_environment_start']}}}"
     end = f"\\end{{{config_options['math_environment_end']}}}"
@@ -1023,6 +1036,8 @@ def format_symbolic_cell(cell: SymbolicCell, **config_options) -> str:
     cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
         "\n" + end, end
     )
+    if where_block:
+        cell.latex_code += "\n" + "\n".join([opener, "\\begin{array}{l@{\\quad}r@{\\quad}l}", where_block, "\\end{array}", closer])
     return cell
 
 
@@ -1595,16 +1610,12 @@ def format_calc_line(line: CalcLine, **config_options) -> CalcLine:
     second_equals = equals_signs[1]  # Change to 1 for second equals
     latex_code = latex_code.replace("=", "&=")  # Align with ampersands for '\align'
     formula = f"{latex_code[0:second_equals + 1]} {latex_code[second_equals + 2:]}"
-    if line.comment.startswith("#"):
-        where_block = _format_where_block(line.comment[1:].strip(), config_options)
-        line.latex = f"{formula}{where_block}\n"
-    else:
-        comment_space = ""
-        comment = ""
-        if line.comment:
-            comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-        line.latex = f"{formula} {comment_space} {comment}\n"
+    comment_space = ""
+    comment = ""
+    if line.comment and not line.comment.startswith("#"):
+        comment_space = "\\;"
+        comment = format_strings(line.comment, comment=True)
+    line.latex = f"{formula} {comment_space} {comment}\n"
     return line
 
 
@@ -1612,16 +1623,12 @@ def format_calc_line(line: CalcLine, **config_options) -> CalcLine:
 def format_calc_line(line: NumericCalcLine, **config_options) -> NumericCalcLine:
     latex_code = line.latex
     latex_code = latex_code.replace("=", "&=")  # Align with ampersands for '\align'
-    if line.comment.startswith("#"):
-        where_block = _format_where_block(line.comment[1:].strip(), config_options)
-        line.latex = f"{latex_code}{where_block}\n"
-    else:
-        comment_space = ""
-        comment = ""
-        if line.comment:
-            comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-        line.latex = f"{latex_code} {comment_space} {comment}\n"
+    comment_space = ""
+    comment = ""
+    if line.comment and not line.comment.startswith("#"):
+        comment_space = "\\;"
+        comment = format_strings(line.comment, comment=True)
+    line.latex = f"{latex_code} {comment_space} {comment}\n"
     return line
 
 
@@ -1669,16 +1676,12 @@ def format_long_calc_line(line: LongCalcLine, **config_options) -> LongCalcLine:
     long_latex = latex_code.replace("=", "\\\\&=")  # Change all...
     long_latex = long_latex.replace("\\\\&=", "&=", 1)  # ...except the first one
     line_break = f"{config_options['line_break']}\n"
-    if line.comment.startswith("#"):
-        where_block = _format_where_block(line.comment[1:].strip(), config_options)
-        line.latex = f"{long_latex}{where_block}\n"
-    else:
-        comment_space = ""
-        comment = ""
-        if line.comment:
-            comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-        line.latex = f"{long_latex} {comment_space} {comment}{line_break}"
+    comment_space = ""
+    comment = ""
+    if line.comment and not line.comment.startswith("#"):
+        comment_space = "\\;"
+        comment = format_strings(line.comment, comment=True)
+    line.latex = f"{long_latex} {comment_space} {comment}{line_break}"
     return line
 
 
@@ -1686,21 +1689,12 @@ def format_long_calc_line(line: LongCalcLine, **config_options) -> LongCalcLine:
 def format_param_line(line: ParameterLine, **config_options) -> ParameterLine:
     comment_space = "\\;"
     line_break = "\n"
-    if line.comment.startswith("#"):
-        where_block = _format_where_block(line.comment[1:].strip(), config_options)
-        if "=" in line.latex:
-            replaced = line.latex.replace("=", "&=")
-            line.latex = f"{replaced}{where_block}\n"
-        else:
-            replaced = line.latex.replace(" ", comment_space)
-            line.latex = f"{replaced}{where_block}\n"
-    elif "=" in line.latex:
+    comment = "" if line.comment.startswith("#") else format_strings(line.comment, comment=True)
+    if "=" in line.latex:
         replaced = line.latex.replace("=", "&=")
-        comment = format_strings(line.comment, comment=True)
         line.latex = f"{replaced} {comment_space} {comment}{line_break}"
     else:  # To handle sympy symbols displayed alone
         replaced = line.latex.replace(" ", comment_space)
-        comment = format_strings(line.comment, comment=True)
         line.latex = f"{replaced} {comment_space} {comment}{line_break}"
     return line
 
@@ -1708,13 +1702,9 @@ def format_param_line(line: ParameterLine, **config_options) -> ParameterLine:
 @format_lines.register(SymbolicLine)
 def format_symbolic_line(line: SymbolicLine, **config_options) -> SymbolicLine:
     replaced = line.latex.replace("=", "&=")
-    if line.comment.startswith("#"):
-        where_block = _format_where_block(line.comment[1:].strip(), config_options)
-        line.latex = f"{replaced}{where_block}\n"
-    else:
-        comment_space = "\\;"
-        comment = format_strings(line.comment, comment=True)
-        line.latex = f"{replaced} {comment_space} {comment}\n"
+    comment_space = "\\;"
+    comment = "" if line.comment.startswith("#") else format_strings(line.comment, comment=True)
+    line.latex = f"{replaced} {comment_space} {comment}\n"
     return line
 
 
@@ -1965,11 +1955,35 @@ def split_parameter_line(line: str, calculated_results: dict) -> deque:
 _WHERE_WORDS = {"en": "where", "da": "hvor"}
 
 
-def _format_where_block(description: str, config_options: dict) -> str:
-    """Return LaTeX for a where-block triggered by ## suffix comments."""
+def _collect_where_block(lines, config_options: dict) -> str:
+    """
+    Scan all lines for ## where-comments (line.comment starts with '#') and
+    return a single LaTeX string for the collected where-block, or '' if none.
+    The variable name is auto-extracted from line.latex (part before first &=).
+    The ## text is the description only — no variable name needed from the user.
+    """
+    entries = []
+    for ln in lines:
+        if not (hasattr(ln, "comment") and ln.comment.startswith("#")):
+            continue
+        desc = ln.comment[1:].strip()
+        # Extract variable LaTeX from line.latex; strip leading & from multi-col layout
+        raw = getattr(ln, "latex", "").lstrip("&").strip()
+        var_latex = raw.split("&=", 1)[0].strip() if "&=" in raw else ""
+        entries.append((var_latex, desc))
+    if not entries:
+        return ""
     word = _WHERE_WORDS.get(config_options.get("language", "en"), "where")
     lb = f"{config_options['line_break']}\n"
-    return f"{lb}&\\textrm{{{word}}}{lb}&\\quad \\textrm{{{description}}}"
+    parts = [f"\\textrm{{{word}}} & &"]
+    for var_latex, desc in entries:
+        if var_latex and desc:
+            parts.append(f"& {var_latex} & \\textrm{{{desc}}}")
+        elif desc:
+            parts.append(f"& & \\textrm{{{desc}}}")
+        elif var_latex:
+            parts.append(f"& {var_latex} &")
+    return lb.join(parts)
 
 
 def format_strings(string: str, comment: bool, **config_options) -> deque:
