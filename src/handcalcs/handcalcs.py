@@ -369,6 +369,9 @@ def categorize_line(
     except ValueError:
         comment = ""
 
+    if comment.strip() == "!":
+        return BlankLine(line, "", "")
+
     # Override behaviour
     categorized_line = None
     if cell_override == "parameter":
