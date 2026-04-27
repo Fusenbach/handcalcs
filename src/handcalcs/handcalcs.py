@@ -1680,12 +1680,17 @@ def format_conditional_line(line: ConditionalLine, **config_options) -> Conditio
         b = "}"
         comment_space = ""
         comment = ""
-        if line.comment:
-            comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
+        if line.comment and not line.comment.startswith("#"):
+            tag = _format_eq_tag(line.comment)
+            if tag:
+                comment = tag
+            else:
+                comment_space = "\\;"
+                comment = format_strings(line.comment, comment=True)
 
+        since_word = _SINCE_WORDS.get(config_options.get("language", "en"), "Since,")
         line_break = f"{config_options['line_break']}\n"
-        first_line = f"&\\text{a}Since, {b} {latex_condition} : {comment_space} {comment} {line_break}"
+        first_line = f"&\\text{a}{since_word}{b} {latex_condition} : {comment_space} {comment} {line_break}"
         if line.condition_type == "else":
             first_line = ""
         line.latex_condition = first_line
@@ -2007,6 +2012,7 @@ def split_parameter_line(line: str, calculated_results: dict) -> deque:
 
 
 _WHERE_WORDS = {"en": "where", "da": "hvor"}
+_SINCE_WORDS = {"en": "Since,", "da": "Da,"}
 
 
 def _format_eq_tag(comment: str) -> str:
@@ -2023,9 +2029,20 @@ def _collect_where_block(lines, config_options: dict) -> str:
     return a single LaTeX string for the collected where-block, or '' if none.
     The variable name is auto-extracted from line.latex (part before first &=).
     The ## text is the description only — no variable name needed from the user.
+    Also descends into ConditionalLine.true_expressions.
     """
     entries = []
     for ln in lines:
+        # Descend into the true branch of a conditional
+        if isinstance(ln, ConditionalLine) and ln.true_expressions:
+            for sub in ln.true_expressions:
+                if not (hasattr(sub, "comment") and sub.comment.startswith("#")):
+                    continue
+                desc = sub.comment[1:].strip()
+                raw = getattr(sub, "latex", "").lstrip("&").strip()
+                var_latex = raw.split("&=", 1)[0].strip() if "&=" in raw else ""
+                entries.append((var_latex, desc))
+            continue
         if not (hasattr(ln, "comment") and ln.comment.startswith("#")):
             continue
         desc = ln.comment[1:].strip()
