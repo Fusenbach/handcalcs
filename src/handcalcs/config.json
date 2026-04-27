@@ -13,5 +13,7 @@
     "preferred_string_formatter": "L",
     "custom_symbols": {},
     "custom_brackets": {},
-    "language": "en"
+    "language": "en",
+    "trailing_zeros": true,
+    "sci_notation_threshold": 0.0
 }
