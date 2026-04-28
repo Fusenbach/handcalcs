@@ -51,13 +51,12 @@ def parse_line_args(line: str) -> dict:
     # valid_args = ["params", "long", "short", "sympy", "symbolic", "_testing"]
     sympy_arg = ["sympy"]
     line_parts = line.split()
-    parsed_args = {"override": "", "precision": None, "sympy": False, "sci_not": None}
-    # parsed_args = {
-    #     "override": "",
-    #     "precision": "",
-    # }
+    parsed_args = {"override": "", "precision": None, "sympy": False, "sci_not": None, "cols": None}
     precision = ""
     for arg in line_parts:
+        if arg == "#":
+            parsed_args["cols"] = 1
+            continue
         if arg.lower() in sympy_arg:
             parsed_args["sympy"] = True
             continue

@@ -179,13 +179,17 @@ class LatexRenderer:
         self.override_precision = line_args["precision"]
         self.override_scientific_notation = line_args["sci_not"]
         self.override_commands = line_args["override"]
+        self.override_cols = line_args.get("cols")
 
     def render(self, config_options: dict = global_config._config):
+        effective_config = config_options
+        if self.override_cols is not None:
+            effective_config = {**config_options, "param_columns": self.override_cols}
         return latex(
             raw_python_source=self.source,
             calculated_results=self.results,
             override_commands=self.override_commands,
-            config_options=config_options,
+            config_options=effective_config,
             cell_precision=self.override_precision,
             cell_notation=self.override_scientific_notation,
         )
@@ -892,13 +896,34 @@ def format_parameters_cell(cell: ParameterCell, **config_options):
         else:
             latex_param = line.latex
 
-            current_col = next(cycle_cols)
-            if current_col % cols == 0:
-                line.latex = "&" + latex_param + line_break
-            elif current_col % cols != 1:
-                line.latex = "&" + latex_param
+            if cols == 1 and isinstance(line, ParameterLine):
+                # 3-column layout: var &= value & \quad\textrm{(comment)}
+                # Keeps = signs aligned regardless of comment length.
+                raw = latex_param.rstrip("\n")
+                comment = line.comment
+                if comment and not comment.startswith("#"):
+                    tag = _format_eq_tag(comment)
+                    if tag:
+                        tag_idx = raw.rfind(tag)
+                        base = raw[:tag_idx].rstrip() if tag_idx >= 0 else raw
+                        line.latex = f"{base} & {tag}{line_break}"
+                    else:
+                        semi_idx = raw.find("\\;")
+                        base = raw[:semi_idx].rstrip() if semi_idx >= 0 else raw.rstrip()
+                        fmt_cmt = f"\\textrm{{({comment.strip()})}}"
+                        line.latex = f"{base} & \\quad {fmt_cmt}{line_break}"
+                else:
+                    semi_idx = raw.find("\\;")
+                    base = raw[:semi_idx].rstrip() if semi_idx >= 0 else raw.rstrip()
+                    line.latex = f"{base} &{line_break}"
             else:
-                line.latex = latex_param
+                current_col = next(cycle_cols)
+                if current_col % cols == 0:
+                    line.latex = "&" + latex_param + line_break
+                elif current_col % cols != 1:
+                    line.latex = "&" + latex_param
+                else:
+                    line.latex = latex_param
 
     latex_block = " ".join(
         [line.latex for line in cell.lines if not isinstance(line, BlankLine)]

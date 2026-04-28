@@ -29,28 +29,40 @@ def test_tex(ip):
     assert output == "$$\n\\begin{aligned}\nx &= 99 \\; \n\\end{aligned}\n$$"
 
 
-def test_parse_line_args():
-    assert handcalcs.render.parse_line_args("params 5") == {
+def test_parse_line_args(ip):
+    from handcalcs import render as hc_render
+    assert hc_render.parse_line_args("params 5") == {
         "override": "params",
         "precision": 5,
         "sympy": False,
         "sci_not": None,
+        "cols": None,
     }
-    assert handcalcs.render.parse_line_args("symbolic") == {
+    assert hc_render.parse_line_args("symbolic") == {
         "override": "symbolic",
         "precision": None,
         "sympy": False,
         "sci_not": None,
+        "cols": None,
     }
-    assert handcalcs.render.parse_line_args("short long 3") == {
+    assert hc_render.parse_line_args("short long 3") == {
         "override": "long",
         "precision": 3,
         "sympy": False,
         "sci_not": None,
+        "cols": None,
     }
-    assert handcalcs.render.parse_line_args("symbolical, 1 sci_not") == {
+    assert hc_render.parse_line_args("symbolical, 1 sci_not") == {
         "override": "",
         "precision": 1,
         "sympy": False,
         "sci_not": True,
+        "cols": None,
+    }
+    assert hc_render.parse_line_args("# params 2") == {
+        "override": "params",
+        "precision": 2,
+        "sympy": False,
+        "sci_not": None,
+        "cols": 1,
     }
