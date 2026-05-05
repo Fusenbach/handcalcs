@@ -901,7 +901,7 @@ def format_parameters_cell(cell: ParameterCell, **config_options):
                 # Keeps = signs aligned regardless of comment length.
                 raw = latex_param.rstrip("\n")
                 comment = line.comment
-                if comment and not comment.startswith("#"):
+                if comment and not comment.startswith("#") and not comment.startswith("<"):
                     tag = _format_eq_tag(comment)
                     if tag:
                         tag_idx = raw.rfind(tag)
@@ -1660,37 +1660,42 @@ def format_lines(line_object, **config_options):
 def format_calc_line(line: CalcLine, **config_options) -> CalcLine:
     latex_code = line.latex
 
+    left_label, remaining_comment = _extract_left_label(line.comment)
+    label_prefix = f"\\textrm{{{left_label}}}\\quad " if left_label else ""
+
     equals_signs = [idx for idx, char in enumerate(latex_code) if char == "="]
     second_equals = equals_signs[1]  # Change to 1 for second equals
     latex_code = latex_code.replace("=", "&=")  # Align with ampersands for '\align'
     formula = f"{latex_code[0:second_equals + 1]} {latex_code[second_equals + 2:]}"
     comment_space = ""
     comment = ""
-    if line.comment and not line.comment.startswith("#"):
-        tag = _format_eq_tag(line.comment)
+    if remaining_comment and not remaining_comment.startswith("#"):
+        tag = _format_eq_tag(remaining_comment)
         if tag:
             comment = tag
         else:
             comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-    line.latex = f"{formula} {comment_space} {comment}\n"
+            comment = format_strings(remaining_comment, comment=True)
+    line.latex = f"{label_prefix}{formula} {comment_space} {comment}\n"
     return line
 
 
 @format_lines.register(NumericCalcLine)
 def format_calc_line(line: NumericCalcLine, **config_options) -> NumericCalcLine:
     latex_code = line.latex
+    left_label, remaining_comment = _extract_left_label(line.comment)
+    label_prefix = f"\\textrm{{{left_label}}}\\quad " if left_label else ""
     latex_code = latex_code.replace("=", "&=")  # Align with ampersands for '\align'
     comment_space = ""
     comment = ""
-    if line.comment and not line.comment.startswith("#"):
-        tag = _format_eq_tag(line.comment)
+    if remaining_comment and not remaining_comment.startswith("#"):
+        tag = _format_eq_tag(remaining_comment)
         if tag:
             comment = tag
         else:
             comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-    line.latex = f"{latex_code} {comment_space} {comment}\n"
+            comment = format_strings(remaining_comment, comment=True)
+    line.latex = f"{label_prefix}{latex_code} {comment_space} {comment}\n"
     return line
 
 
@@ -1740,55 +1745,61 @@ def format_long_calc_line(line: LongCalcLine, **config_options) -> LongCalcLine:
     for positioning within the "\aligned" latex environment.
     """
     latex_code = line.latex
+    left_label, remaining_comment = _extract_left_label(line.comment)
+    label_prefix = f"\\textrm{{{left_label}}}\\quad " if left_label else ""
     long_latex = latex_code.replace("=", "\\\\&=")  # Change all...
     long_latex = long_latex.replace("\\\\&=", "&=", 1)  # ...except the first one
     line_break = f"{config_options['line_break']}\n"
     comment_space = ""
     comment = ""
-    if line.comment and not line.comment.startswith("#"):
-        tag = _format_eq_tag(line.comment)
+    if remaining_comment and not remaining_comment.startswith("#"):
+        tag = _format_eq_tag(remaining_comment)
         if tag:
             comment = tag
         else:
             comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
-    line.latex = f"{long_latex} {comment_space} {comment}{line_break}"
+            comment = format_strings(remaining_comment, comment=True)
+    line.latex = f"{label_prefix}{long_latex} {comment_space} {comment}{line_break}"
     return line
 
 
 @format_lines.register(ParameterLine)
 def format_param_line(line: ParameterLine, **config_options) -> ParameterLine:
     line_break = "\n"
-    if line.comment.startswith("#"):
+    left_label, remaining_comment = _extract_left_label(line.comment)
+    label_prefix = f"\\textrm{{{left_label}}}\\quad " if left_label else ""
+    if remaining_comment.startswith("#"):
         comment_space = "\\;"
         comment = ""
     else:
-        tag = _format_eq_tag(line.comment)
+        tag = _format_eq_tag(remaining_comment)
         if tag:
             comment_space = ""
             comment = tag
         else:
             comment_space = "\\;"
-            comment = format_strings(line.comment, comment=True)
+            comment = format_strings(remaining_comment, comment=True)
     if "=" in line.latex:
         replaced = line.latex.replace("=", "&=")
-        line.latex = f"{replaced} {comment_space} {comment}{line_break}"
+        line.latex = f"{label_prefix}{replaced} {comment_space} {comment}{line_break}"
     else:  # To handle sympy symbols displayed alone
         replaced = line.latex.replace(" ", comment_space)
-        line.latex = f"{replaced} {comment_space} {comment}{line_break}"
+        line.latex = f"{label_prefix}{replaced} {comment_space} {comment}{line_break}"
     return line
 
 
 @format_lines.register(SymbolicLine)
 def format_symbolic_line(line: SymbolicLine, **config_options) -> SymbolicLine:
+    left_label, remaining_comment = _extract_left_label(line.comment)
+    label_prefix = f"\\textrm{{{left_label}}}\\quad " if left_label else ""
     replaced = line.latex.replace("=", "&=")
     comment_space = "\\;"
-    if line.comment.startswith("#"):
+    if remaining_comment.startswith("#"):
         comment = ""
     else:
-        tag = _format_eq_tag(line.comment)
-        comment = tag if tag else format_strings(line.comment, comment=True)
-    line.latex = f"{replaced} {comment_space} {comment}\n"
+        tag = _format_eq_tag(remaining_comment)
+        comment = tag if tag else format_strings(remaining_comment, comment=True)
+    line.latex = f"{label_prefix}{replaced} {comment_space} {comment}\n"
     return line
 
 
@@ -2046,6 +2057,14 @@ def _format_eq_tag(comment: str) -> str:
     if c.startswith("(") and c.endswith(")") and len(c) > 2:
         return f"\\quad \\textrm{{{c}}}"
     return ""
+
+
+def _extract_left_label(comment: str):
+    """If comment starts with '<', extract it as a left-side description label.
+    Returns (label_text, remaining_comment); label_text is None if not a left label."""
+    if comment and comment.startswith("<"):
+        return comment[1:].strip(), ""
+    return None, comment
 
 
 def _collect_where_block(lines, config_options: dict) -> str:
