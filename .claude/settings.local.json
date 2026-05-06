@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash('C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe' -c ' *)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/ -x -q)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/ --ignore=test_handcalcs/test_pint.py -x -q)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/test_handcalcs_file.py test_handcalcs/test_render_file.py -x -q)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/test_handcalcs_file.py::test_integration -x -q -s)",
+      "Bash(git stash *)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/test_handcalcs_file.py::test_integration -x -q)",
+      "Bash(\"C:\\\\dev\\\\toolbox\\\\99_env\\\\.venv312\\\\Scripts\\\\python.exe\" -m pytest test_handcalcs/test_handcalcs_file.py test_handcalcs/test_render_file.py -q --ignore=test_handcalcs/test_pint.py)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

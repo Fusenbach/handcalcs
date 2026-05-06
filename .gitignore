@@ -3,7 +3,7 @@ handcalcs/.ipynb_checkpoints/
 handcalcs/__pycache__
 *.ipynb
 *.lock
-.idea
+.ideaDet er vel også den bedste mpdeat løse det på
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
